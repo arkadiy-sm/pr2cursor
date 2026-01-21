@@ -106,10 +106,15 @@ async function main(): Promise<void> {
 
   console.log("");
 
-  // Step 4: Normalize comments
-  console.log("4️⃣  Normalizing comments...");
+  // Step 4: Normalize & filter comments
+  console.log("4️⃣  Filtering comments (removing bots, resolved, PR author)...");
   const normalized = normalizeAll(prView, issueComments, inlineComments);
-  console.log(`   ✅ Total comments: ${normalized.length}\n`);
+  
+  const totalRaw = prView.reviews.length + issueComments.length + 
+    inlineComments.reduce((sum, t) => sum + t.comments.length, 0);
+  const filtered = totalRaw - normalized.length;
+  
+  console.log(`   ✅ ${normalized.length} actionable (${filtered} filtered out)\n`);
 
   // Step 5: Render prompt
   console.log("5️⃣  Rendering prompt...");

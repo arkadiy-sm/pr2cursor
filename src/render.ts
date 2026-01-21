@@ -1,7 +1,7 @@
 import type { PRView, NormalizedComment } from "./types.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Render Markdown prompt
+// Render Markdown prompt - concise format
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function renderPrompt(
@@ -10,122 +10,59 @@ export function renderPrompt(
 ): string {
   const lines: string[] = [];
 
-  // Header
-  lines.push(`# PR Review Analysis: ${prView.title}`);
+  // Minimal header
+  lines.push(`# PR #${prView.url.split("/").pop()}: ${prView.title}`);
   lines.push("");
-  lines.push(`**PR URL:** ${prView.url}`);
-  lines.push(`**Author:** @${prView.author.login}`);
-  lines.push(`**Branch:** \`${prView.headRefName}\` → \`${prView.baseRefName}\``);
-  lines.push(`**State:** ${prView.state}`);
+  lines.push(`${prView.url} | \`${prView.headRefName}\` → \`${prView.baseRefName}\``);
   lines.push("");
 
-  // Instructions for Cursor
+  // Concise instructions
+  lines.push("## Task");
+  lines.push("");
+  lines.push("Review comments below. For each: **FIX** (code change needed), **REPLY** (question/suggestion), or **IGNORE**.");
+  lines.push("");
+  lines.push("1. Make code fixes for FIX items");
+  lines.push("2. End with a report: classification + action/reply for each comment");
+  lines.push("");
+
+  // Check if no comments
+  if (comments.length === 0) {
+    lines.push("---");
+    lines.push("");
+    lines.push("**No pending review comments found.** All threads resolved or only bot comments.");
+    lines.push("");
+    return lines.join("\n");
+  }
+
+  // Comments section - compact format
   lines.push("---");
   lines.push("");
-  lines.push("## Instructions");
-  lines.push("");
-  lines.push("Analyze all the PR review comments below. For each comment, decide:");
-  lines.push("");
-  lines.push("1. **FIX** — The comment points to a real issue that needs code changes");
-  lines.push("2. **REPLY** — The comment is a question, suggestion, or needs clarification");
-  lines.push("3. **IGNORE** — Bot/automated comment or not actionable");
-  lines.push("");
-  lines.push("Then:");
-  lines.push("");
-  lines.push("1. **Make all necessary code fixes** for FIX items (minimal, safe changes)");
-  lines.push("2. **At the end, provide a Report** with:");
-  lines.push("   - List of all comments with your classification (FIX/REPLY/IGNORE)");
-  lines.push("   - For FIX items: what you changed and why");
-  lines.push("   - For REPLY items: draft a short, professional reply to post on GitHub");
-  lines.push("   - For IGNORE items: brief reason why ignored");
+  lines.push(`## Comments (${comments.length})`);
   lines.push("");
 
-  // All comments section
-  lines.push("---");
-  lines.push("");
-  lines.push("## PR Review Comments");
-  lines.push("");
-  lines.push(`Total: **${comments.length}** comments`);
-  lines.push("");
-
-  // Filter out empty bot comments
-  const relevantComments = comments.filter(c => c.body.trim().length > 0);
-
-  for (let i = 0; i < relevantComments.length; i++) {
-    const comment = relevantComments[i];
+  for (let i = 0; i < comments.length; i++) {
+    const c = comments[i];
     const num = i + 1;
 
-    lines.push(`### Comment #${num}`);
-    lines.push("");
-    lines.push(`- **Author:** @${comment.author}${comment.isBot ? " 🤖 (bot)" : ""}`);
-    lines.push(`- **Type:** ${formatKind(comment.kind)}`);
+    // One-line header with essential info
+    const location = c.filePath 
+      ? (c.line ? `\`${c.filePath}:${c.line}\`` : `\`${c.filePath}\``)
+      : "";
+    const stateTag = c.state ? ` [${c.state}]` : "";
     
-    if (comment.filePath) {
-      const location = comment.line ? `${comment.filePath}:${comment.line}` : comment.filePath;
-      lines.push(`- **Location:** \`${location}\``);
+    lines.push(`### #${num} @${c.author}${stateTag} ${location}`);
+    
+    // Comment body - no code fence for short comments
+    if (c.body.length < 200 && !c.body.includes("\n")) {
+      lines.push(`> ${c.body}`);
+    } else {
+      lines.push("");
+      lines.push("```");
+      lines.push(c.body.trim());
+      lines.push("```");
     }
-    
-    if (comment.state) {
-      lines.push(`- **Review State:** ${comment.state}`);
-    }
-    
-    if (comment.url) {
-      lines.push(`- **Link:** ${comment.url}`);
-    }
-    
-    lines.push("");
-    lines.push("**Comment:**");
-    lines.push("");
-    lines.push("```");
-    lines.push(comment.body);
-    lines.push("```");
     lines.push("");
   }
-
-  // Report template
-  lines.push("---");
-  lines.push("");
-  lines.push("## Report Template");
-  lines.push("");
-  lines.push("After making fixes, fill out this report:");
-  lines.push("");
-  lines.push("```markdown");
-  lines.push("# PR Review Response Report");
-  lines.push("");
-  lines.push("## Summary");
-  lines.push("- FIX: X items");
-  lines.push("- REPLY: X items");
-  lines.push("- IGNORE: X items");
-  lines.push("");
-  lines.push("## Details");
-  lines.push("");
-  lines.push("### Comment #1");
-  lines.push("- **Classification:** FIX / REPLY / IGNORE");
-  lines.push("- **Action taken:** [describe changes or reply]");
-  lines.push("- **GitHub Reply:** (if needed)");
-  lines.push("> Your reply text here");
-  lines.push("");
-  lines.push("### Comment #2");
-  lines.push("...");
-  lines.push("```");
-  lines.push("");
 
   return lines.join("\n");
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Helper: Format comment kind
-// ─────────────────────────────────────────────────────────────────────────────
-
-function formatKind(kind: string): string {
-  switch (kind) {
-    case "inline_comment":
-      return "Inline code comment";
-    case "review_body":
-      return "Review summary";
-    case "pr_comment":
-      return "PR conversation";
-    default:
-      return kind;
-  }
 }
