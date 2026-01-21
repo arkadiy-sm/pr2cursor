@@ -107,14 +107,19 @@ async function main(): Promise<void> {
   console.log("");
 
   // Step 4: Normalize & filter comments
-  console.log("4️⃣  Filtering comments (removing bots, resolved, PR author)...");
-  const normalized = normalizeAll(prView, issueComments, inlineComments);
+  console.log("4️⃣  Filtering comments...");
+  const { comments: normalized, authorLastActivity } = normalizeAll(prView, issueComments, inlineComments);
   
   const totalRaw = prView.reviews.length + issueComments.length + 
     inlineComments.reduce((sum, t) => sum + t.comments.length, 0);
   const filtered = totalRaw - normalized.length;
   
-  console.log(`   ✅ ${normalized.length} actionable (${filtered} filtered out)\n`);
+  if (authorLastActivity) {
+    console.log(`   📅 Your last response: ${authorLastActivity.toISOString()}`);
+    console.log(`   ✅ ${normalized.length} NEW comments (${filtered} already addressed)\n`);
+  } else {
+    console.log(`   ✅ ${normalized.length} comments (${filtered} bots/resolved filtered)\n`);
+  }
 
   // Step 5: Render prompt
   console.log("5️⃣  Rendering prompt...");
