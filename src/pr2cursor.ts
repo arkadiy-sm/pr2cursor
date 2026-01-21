@@ -9,6 +9,7 @@ import {
   getPRView,
   getIssueComments,
   getInlineComments,
+  getLastPushDate,
 } from "./gh.js";
 import { normalizeAll } from "./normalize.js";
 import { renderPrompt } from "./render.js";
@@ -89,7 +90,7 @@ async function main(): Promise<void> {
   // Step 3: Fetch PR data
   console.log(`3️⃣  Fetching PR #${prNumber} data...`);
 
-  const [prView, issueComments, inlineComments] = await Promise.all([
+  const [prView, issueComments, inlineComments, lastPush] = await Promise.all([
     getPRView(prNumber, repo).then((r) => {
       console.log(`   ✅ PR info: "${r.title}"`);
       return r;
@@ -102,14 +103,24 @@ async function main(): Promise<void> {
       console.log(`   ✅ Inline comments: ${r.length} threads`);
       return r;
     }),
+    getLastPushDate(prNumber, repo).then((r) => {
+      if (r) {
+        console.log(`   ✅ Last push: ${r.toISOString()}`);
+      }
+      return r;
+    }),
   ]);
 
   console.log("");
 
-  // Step 4: Normalize comments
-  console.log("4️⃣  Extracting all comments...");
-  const normalized = normalizeAll(prView, issueComments, inlineComments);
-  console.log(`   ✅ ${normalized.length} comments extracted\n`);
+  // Step 4: Filter to comments after last push
+  console.log("4️⃣  Filtering to comments after last push...");
+  const normalized = normalizeAll(prView, issueComments, inlineComments, lastPush);
+  
+  const totalRaw = prView.reviews.length + issueComments.length + 
+    inlineComments.reduce((sum, t) => sum + t.comments.length, 0);
+  
+  console.log(`   ✅ ${normalized.length} new comments (${totalRaw - normalized.length} older filtered)\n`);
 
   // Step 5: Render prompt
   console.log("5️⃣  Rendering prompt...");

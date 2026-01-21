@@ -37,14 +37,29 @@ function cleanBody(body: string): string {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Normalize all reviews
+// Check if comment is after cutoff date
 // ─────────────────────────────────────────────────────────────────────────────
 
-function normalizeReviews(prView: PRView): NormalizedComment[] {
+function isAfterCutoff(dateStr: string | undefined, cutoff: Date | null): boolean {
+  if (!cutoff) return true; // No cutoff = include all
+  if (!dateStr) return true; // No date = include (be safe)
+  
+  const commentDate = new Date(dateStr);
+  return commentDate > cutoff;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Normalize reviews - only after last push
+// ─────────────────────────────────────────────────────────────────────────────
+
+function normalizeReviews(prView: PRView, lastPush: Date | null): NormalizedComment[] {
   const results: NormalizedComment[] = [];
 
   for (const review of prView.reviews) {
     if (!review.author) continue;
+    
+    // Filter: only after last push
+    if (!isAfterCutoff(review.submittedAt || undefined, lastPush)) continue;
     
     const author = review.author.login;
     const body = cleanBody(review.body || "");
@@ -73,14 +88,20 @@ function normalizeReviews(prView: PRView): NormalizedComment[] {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Normalize all issue comments
+// Normalize issue comments - only after last push
 // ─────────────────────────────────────────────────────────────────────────────
 
-function normalizeIssueComments(comments: IssueComment[]): NormalizedComment[] {
+function normalizeIssueComments(
+  comments: IssueComment[],
+  lastPush: Date | null
+): NormalizedComment[] {
   const results: NormalizedComment[] = [];
 
   for (const comment of comments) {
     if (!comment.user) continue;
+    
+    // Filter: only after last push
+    if (!isAfterCutoff(comment.created_at, lastPush)) continue;
     
     const body = cleanBody(comment.body || "");
     if (!body) continue;
@@ -104,14 +125,20 @@ function normalizeIssueComments(comments: IssueComment[]): NormalizedComment[] {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Normalize all inline comments
+// Normalize inline comments - only after last push
 // ─────────────────────────────────────────────────────────────────────────────
 
-function normalizeInlineComments(threads: InlineComment[]): NormalizedComment[] {
+function normalizeInlineComments(
+  threads: InlineComment[],
+  lastPush: Date | null
+): NormalizedComment[] {
   const results: NormalizedComment[] = [];
 
   for (const thread of threads) {
     for (const comment of thread.comments) {
+      // Filter: only after last push
+      if (!isAfterCutoff(comment.createdAt, lastPush)) continue;
+      
       const body = cleanBody(comment.body);
       if (!body) continue;
 
@@ -135,18 +162,19 @@ function normalizeInlineComments(threads: InlineComment[]): NormalizedComment[] 
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Main normalization function - NO FILTERING, just extract all
+// Main normalization function - filter to comments AFTER last push
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function normalizeAll(
   prView: PRView,
   issueComments: IssueComment[],
-  inlineComments: InlineComment[]
+  inlineComments: InlineComment[],
+  lastPush: Date | null
 ): NormalizedComment[] {
   const allComments: NormalizedComment[] = [
-    ...normalizeReviews(prView),
-    ...normalizeIssueComments(issueComments),
-    ...normalizeInlineComments(inlineComments),
+    ...normalizeReviews(prView, lastPush),
+    ...normalizeIssueComments(issueComments, lastPush),
+    ...normalizeInlineComments(inlineComments, lastPush),
   ];
 
   // Sort by createdAt (oldest first)

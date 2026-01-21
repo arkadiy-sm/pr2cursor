@@ -220,6 +220,36 @@ export async function getInlineComments(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Get last commit date on PR
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function getLastPushDate(
+  prNumber: number,
+  repo: string
+): Promise<Date | null> {
+  try {
+    const stdout = await runGh([
+      "api",
+      `repos/${repo}/pulls/${prNumber}/commits`,
+      "--jq",
+      ".[-1].commit.committer.date",
+    ]);
+
+    const dateStr = stdout.trim();
+    if (dateStr) {
+      return new Date(dateStr);
+    }
+    return null;
+  } catch (error) {
+    console.warn(
+      "⚠️  Could not fetch last commit date:",
+      error instanceof Error ? error.message : String(error)
+    );
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Get PR diff
 // ─────────────────────────────────────────────────────────────────────────────
 
