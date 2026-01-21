@@ -1,0 +1,35 @@
+{
+  "name": "pr2cursor",
+  "version": "1.0.0",
+  "description": "Generate Cursor-ready prompts from GitHub Pull Request feedback",
+  "type": "module",
+  "main": "src/pr2cursor.ts",
+  "bin": {
+    "pr2cursor": "./bin/pr2cursor.js"
+  },
+  "scripts": {
+    "pr2cursor": "tsx src/pr2cursor.ts",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "github",
+    "pr",
+    "cursor",
+    "code-review"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "execa": "^8.0.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
