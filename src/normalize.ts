@@ -6,6 +6,20 @@ import type {
 } from "./types.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Check if comment should be skipped entirely
+// ─────────────────────────────────────────────────────────────────────────────
+
+function shouldSkipComment(body: string): boolean {
+  // Skip SonarCloud/SonarQube reports that passed
+  if (body.includes("sonarcloud.io") || body.includes("sonarqube")) {
+    if (body.toLowerCase().includes("quality gate passed")) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Clean up comment body - remove HTML noise
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -61,6 +75,9 @@ function normalizeReviews(prView: PRView, lastPush: Date | null): NormalizedComm
     // Filter: only after last push
     if (!isAfterCutoff(review.submittedAt || undefined, lastPush)) continue;
     
+    // Skip passing SonarCloud reports
+    if (shouldSkipComment(review.body || "")) continue;
+    
     const author = review.author.login;
     const body = cleanBody(review.body || "");
     
@@ -102,6 +119,9 @@ function normalizeIssueComments(
     
     // Filter: only after last push
     if (!isAfterCutoff(comment.created_at, lastPush)) continue;
+    
+    // Skip passing SonarCloud reports
+    if (shouldSkipComment(comment.body || "")) continue;
     
     const body = cleanBody(comment.body || "");
     if (!body) continue;
