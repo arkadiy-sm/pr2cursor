@@ -26,17 +26,9 @@ This CLI tool collects all PR feedback (inline review comments, review bodies, a
 
 ## Installation
 
-### Local installation
-
 ```bash
-cd tools/pr2cursor
-npm install
-```
-
-### Global installation (run from anywhere)
-
-```bash
-cd tools/pr2cursor
+git clone https://github.com/arkadiy-sm/pr2cursor.git
+cd pr2cursor
 npm install
 npm link
 ```
@@ -50,8 +42,6 @@ npm unlink -g pr2cursor
 
 ## Usage
 
-### Global command (after `npm link`)
-
 ```bash
 # Run from any directory - output saved in current folder
 pr2cursor <PR_NUMBER> [owner/repo]
@@ -59,12 +49,6 @@ pr2cursor <PR_NUMBER> [owner/repo]
 # Examples
 pr2cursor 123                      # auto-detect repo from current git directory
 pr2cursor 123 facebook/react       # specify repo explicitly
-```
-
-### Using npm script (from pr2cursor directory)
-
-```bash
-npm run pr2cursor -- <PR_NUMBER> [owner/repo]
 ```
 
 ## Output
@@ -76,8 +60,7 @@ The tool creates `pr-<PR_NUMBER>.md` in your **current directory**.
 1. **PR metadata** — Title, URL, branches, state
 2. **Instructions for Cursor** — How to analyze and classify comments
 3. **All PR comments** — Numbered list with author, type, location, and full text
-4. **PR Diff** — The code changes
-5. **Report Template** — For Cursor to fill out after analysis
+4. **Report Template** — For Cursor to fill out after analysis
 
 ### How Cursor should use it:
 
@@ -104,13 +87,12 @@ $ pr2cursor 123 my-org/my-repo
    ✅ PR info: "Add new feature"
    ✅ PR comments: 5
    ✅ Inline comments: 3 threads
-   ✅ Diff: 4523 chars
 
 4️⃣  Normalizing comments...
    ✅ Total comments: 10
 
 5️⃣  Rendering prompt...
-   ✅ Written: /path/to/current/dir/pr-123.md (12453 chars)
+   ✅ Written: ./pr-123.md (5432 chars)
 
 ✨ Done! Open the file in Cursor and let it analyze the PR feedback.
 ```
